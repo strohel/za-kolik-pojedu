@@ -1,4 +1,6 @@
 use dioxus::prelude::*;
+use serde::Deserialize;
+use tracing::debug;
 
 static CSS: Asset = asset!("/assets/main.css");
 
@@ -26,13 +28,31 @@ fn Title() -> Element {
 
 #[component]
 fn DogView() -> Element {
+    let mut img_src = use_signal(String::new);
+
+    let fetch_new = move |_| async move {
+        let response = reqwest::get("https://dog.ceo/api/breeds/image/random")
+            .await
+            .unwrap()
+            .json::<DogApi>()
+            .await
+            .unwrap();
+
+        img_src.set(response.message);
+    };
+
     rsx! {
         div { id: "dogview",
-            img { src: "https://images.dog.ceo/breeds/pitbull/dog-3981540_1280.jpg" }
+            img { src: img_src }
         }
         div { id: "buttons",
-            button { id: "skip", "skip" }
-            button { id: "save", "save!" }
+            button { onclick: fetch_new, id: "skip", "skip" }
+            // button { onclick: save, id: "save", "save!" }
         }
     }
+}
+
+#[derive(Deserialize)]
+struct DogApi {
+    message: String,
 }
