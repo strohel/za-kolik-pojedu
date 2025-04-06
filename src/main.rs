@@ -1,6 +1,7 @@
+use crate::provider::Provider;
 use dioxus::prelude::*;
-use serde::Deserialize;
-use tracing::debug;
+
+pub mod provider;
 
 static CSS: Asset = asset!("/assets/main.css");
 
@@ -13,44 +14,48 @@ fn App() -> Element {
     rsx! {
         document::Stylesheet { href: CSS }
         Title {}
-        DogView {}
+        MainView {}
     }
 }
 
 #[component]
 fn Title() -> Element {
+    let title = "Za kolik pojedu? 🚗🫰";
+
     rsx! {
+        document::Title { "{title}" },
         div { id: "title",
-            h1 { "HotDog! 🌭" }
+            h1 { "{title}" }
         }
     }
 }
 
 #[component]
-fn DogView() -> Element {
-    let mut img_src = use_resource(|| async move {
-        debug!("Fetching new image info.");
-        reqwest::get("https://dog.ceo/api/breeds/image/random")
-            .await
-            .unwrap()
-            .json::<DogApi>()
-            .await
-            .unwrap()
-            .message
+fn MainView() -> Element {
+    let providers = use_signal(|| -> Vec<Provider> {
+        vec![
+            Provider::Car4way(Default::default()),
+            Provider::Bolt(Default::default()),
+        ]
     });
 
     rsx! {
-        div { id: "dogview",
-            img { src: img_src.cloned().unwrap_or_default() }
-        }
-        div { id: "buttons",
-            button { onclick: move |_| img_src.restart(), id: "skip", "skip" }
-            // button { onclick: save, id: "save", "save!" }
+        div { id: "providers",
+            h2 { "Poskytovatelé" },
+            for &provider in providers.read().iter() {
+                ProviderSection { provider },
+            }
         }
     }
 }
 
-#[derive(Deserialize)]
-struct DogApi {
-    message: String,
+#[component]
+fn ProviderSection(provider: Provider) -> Element {
+    rsx! {
+        div {
+            key: provider.name(),
+            id: "provider",
+            h3 { "{provider.name()}" },
+        }
+    }
 }
