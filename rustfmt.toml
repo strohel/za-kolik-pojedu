@@ -1,0 +1,11 @@
+# Unstable, tracking issue https://github.com/rust-lang/rustfmt/issues/3353
+format_strings = true
+# Unstable, tracking issue https://github.com/rust-lang/rustfmt/issues/5083
+group_imports = "One"
+# Unstable, tracking issue https://github.com/rust-lang/rustfmt/issues/4991
+imports_granularity = "Crate"
+match_block_trailing_comma = true
+# Unstable, tracking issue https://github.com/rust-lang/rustfmt/issues/3363
+reorder_impl_items = true
+use_field_init_shorthand = true
+use_small_heuristics = "Max"

@@ -1,4 +1,4 @@
-use crate::provider::{Provider, ProviderKind};
+use crate::provider::{car4way::Car4way, Provider, ProviderKind};
 use dioxus::prelude::*;
 
 pub mod provider;
@@ -35,7 +35,7 @@ fn MainView() -> Element {
     let providers = use_signal(|| -> Vec<Provider> {
         vec![
             Provider::new(ProviderKind::Bolt(Default::default())),
-            Provider::new(ProviderKind::Car4way(Default::default())),
+            Provider::new(ProviderKind::Car4way(Car4way::new())),
         ]
     });
 
