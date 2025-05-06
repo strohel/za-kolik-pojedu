@@ -220,7 +220,7 @@ struct TariffRow {
         deserialize_with = "deserialize_decimal_comma"
     )]
     fancy: Option<f64>,
-    #[serde(alias = "Boss  Superb / Kodiaq", deserialize_with = "deserialize_decimal_comma")]
+    #[serde(alias = "Boss Superb / Kodiaq", deserialize_with = "deserialize_decimal_comma")]
     boss: Option<f64>,
 }
 

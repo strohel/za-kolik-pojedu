@@ -2,7 +2,7 @@
 ## Recipe
 
 Find latest PDF price list. Prices last updated per:
-https://content.car4way.cz/docs/c4w_cenik_04_2025.pdf
+https://content.car4way.cz/docs/c4w_cenik_05_2025.pdf
 
 1. Open it in Okular.
 2. Use `Table Selection` tool.
