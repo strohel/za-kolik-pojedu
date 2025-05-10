@@ -3,7 +3,7 @@ use crate::provider::{bolt::Bolt, car4way::Car4way};
 pub mod bolt;
 pub mod car4way;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Provider {
     enabled: bool,
     kind: ProviderKind,
@@ -11,10 +11,7 @@ pub struct Provider {
 
 impl Provider {
     pub fn new(kind: ProviderKind) -> Self {
-        Self {
-            enabled: true,
-            kind,
-        }
+        Self { enabled: true, kind }
     }
 
     pub fn name(&self) -> &str {
@@ -25,7 +22,7 @@ impl Provider {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ProviderKind {
     Bolt(Bolt),
     Car4way(Car4way),

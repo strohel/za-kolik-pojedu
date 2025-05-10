@@ -1,10 +1,5 @@
-html,
-body {
-    overflow: hidden;
-}
-
 #providers,
-#provider {
+.provider {
     border: 1px solid black;
     border-radius: 1em;
     padding: 0.5em;

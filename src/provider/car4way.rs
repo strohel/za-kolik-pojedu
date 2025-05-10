@@ -4,15 +4,17 @@ use enum_map::{enum_map, Enum, EnumMap};
 use regex::{Captures, Regex};
 use serde::{de::Error, Deserialize, Deserializer};
 use std::{mem, sync::LazyLock, time::Duration};
-use time::Time;
-use tracing::{debug, warn};
+use time::{Time, Weekday};
+use tracing::debug;
 
 const BASIC: &[u8] = include_bytes!("../../provider-data/car4way/basic.tsv");
 const ACTIVE: &[u8] = include_bytes!("../../provider-data/car4way/active.tsv");
 const BUSINESS: &[u8] = include_bytes!("../../provider-data/car4way/business.tsv");
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Car4way {}
+#[derive(Debug, Clone, PartialEq)]
+pub struct Car4way {
+    tariffs: Vec<Tariff>,
+}
 
 impl Car4way {
     #[allow(clippy::new_without_default)]
@@ -25,15 +27,17 @@ impl Car4way {
     }
 
     fn load_tariffs() -> Result<Self> {
-        for (name, data) in [("Basic", BASIC), ("Active", ACTIVE), ("Business", BUSINESS)] {
-            debug!("Loading {name:?}...");
-            let tariff = load_tariff(name, data)
-                .with_context(|| format!("loading {name:?} Car4way tariff"))?;
-            dbg!(tariff);
-        }
+        let tariffs: Result<_> = [("Basic", BASIC), ("Active", ACTIVE), ("Business", BUSINESS)]
+            .iter()
+            .map(|(name, data)| {
+                debug!("Loading {name:?}...");
+                load_tariff(name, data).with_context(|| format!("loading {name:?} Car4way tariff"))
+            })
+            .collect();
+        let tariffs = tariffs?;
 
         // TODO(Matej): persist tariffs
-        Ok(Self {})
+        Ok(Self { tariffs })
     }
 }
 
@@ -73,6 +77,19 @@ struct Package {
     duration: Duration,
     kilometers: f64,
     czk: f64,
+    time_limitation: Option<TimeLimitation>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct TimeLimitation {
+    from: WeekdayTime,
+    to: WeekdayTime,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct WeekdayTime {
+    weekday: Weekday,
+    time: Time,
 }
 
 // https://users.rust-lang.org/t/compile-time-const-unwrapping/51619
@@ -91,6 +108,9 @@ fn load_tariff(name: &'static str, data: &[u8]) -> Result<Tariff> {
     // Keep the times and regexes in sync!
     const DAY_START: Time = unwrap!(Time::from_hms(6, 0, 0));
     const NIGHT_START: Time = unwrap!(Time::from_hms(20, 0, 0));
+    const WEEKEND_START: Time = unwrap!(Time::from_hms(16, 0, 0));
+    const WEEKEND_END: Time = unwrap!(Time::from_hms(10, 0, 0));
+
     static DAY_MINUTE_TARIFF_RE: LazyLock<Regex> =
         LazyLock::new(|| Regex::new("Denní: 6:00 - 20:00 Po-Ne").unwrap());
     static NIGHT_MINUTE_TARIFF_RE: LazyLock<Regex> =
@@ -124,7 +144,17 @@ fn load_tariff(name: &'static str, data: &[u8]) -> Result<Tariff> {
         } else if let Some(matches) = DAY_PACKAGE_RE.captures(&row.item) {
             extract_package(&row, &mut packages, matches, Duration::from_secs(24 * 60 * 60))?;
         } else if row.item == "Víkend + 200 km" {
-            warn!("Weekend package not yet supported!");
+            let time_limitation = Some(TimeLimitation {
+                from: WeekdayTime { weekday: Weekday::Friday, time: WEEKEND_START },
+                to: WeekdayTime { weekday: Weekday::Monday, time: WEEKEND_END },
+            });
+            extract_package_inner(
+                &row,
+                &mut packages,
+                Duration::from_secs((8 + 24 + 24 + 10) * 60 * 60),
+                200.0,
+                time_limitation,
+            )?;
         } else if row.item == "Km nad rámec balíčků" {
             per_km_czk = Some(row.only().context("expected exactly one value for per km price")?);
         } else if row.item == "Letiště Praha - příjezd" {
@@ -196,13 +226,24 @@ fn extract_package(
         .parse()
         .context("parsing kilometers as float")?;
 
+    extract_package_inner(row, packages, duration, kilometers, None)
+}
+
+fn extract_package_inner(
+    row: &TariffRow,
+    packages: &mut EnumMap<CarType, Vec<Package>>,
+    duration: Duration,
+    kilometers: f64,
+    time_limitation: Option<TimeLimitation>,
+) -> Result<()> {
     for (car_type, czk) in
         [(CarType::Legend, row.legend), (CarType::Fancy, row.fancy), (CarType::Boss, row.boss)]
     {
         let Some(czk) = czk else {
             bail!("All columns should have valid price valid for item {}", row.item);
         };
-        let package = Package { name: row.item.to_string(), duration, kilometers, czk };
+        let package =
+            Package { name: row.item.to_string(), duration, kilometers, czk, time_limitation };
         packages[car_type].push(package);
     }
 
@@ -261,6 +302,6 @@ mod tests {
 
     #[test]
     fn load_tariffs() {
-        Car4way::new();
+        dbg!(Car4way::new());
     }
 }

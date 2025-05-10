@@ -42,7 +42,7 @@ fn MainView() -> Element {
     rsx! {
         div { id: "providers",
             h2 { "Poskytovatelé" },
-            for &provider in providers.read().iter() {
+            for provider in providers.read().iter().cloned() {
                 ProviderSection { provider },
             }
         }
@@ -54,8 +54,9 @@ fn ProviderSection(provider: Provider) -> Element {
     rsx! {
         div {
             key: provider.name(),
-            id: "provider",
+            class: "provider",
             h3 { "{provider.name()}" },
+            pre { "{provider:#?}" }
         }
     }
 }
