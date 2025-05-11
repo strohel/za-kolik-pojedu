@@ -3,7 +3,7 @@
 [web.app]
 
 # HTML title tag content
-title = "za-kolik-pojedu"
+title = "Za kolik pojedu? 🚗🫰"
 
 # include `assets` in web platform
 [web.resource]

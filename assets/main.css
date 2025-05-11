@@ -1,10 +1,15 @@
-#providers,
+body {
+    margin: 0;
+}
+
+.top-section,
 .provider {
     border: 1px solid black;
     border-radius: 1em;
     padding: 0.5em;
+    margin: 0.5em;
 }
 
-#providers>* {
+.top-section>* {
     margin: 0.5em;
 }
