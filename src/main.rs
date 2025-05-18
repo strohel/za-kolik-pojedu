@@ -1,6 +1,6 @@
 use crate::provider::{car4way::Car4way, Provider, ProviderKind};
 use dioxus::prelude::*;
-use time::{Duration, OffsetDateTime, PrimitiveDateTime, UtcDateTime, UtcOffset};
+use jiff::{civil::DateTime, RoundMode, ToSpan, Unit, Zoned, ZonedRound};
 use tracing::debug;
 
 pub mod provider;
@@ -57,25 +57,17 @@ fn MainView() -> Element {
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct TripInputData {
     km: f64,
-    begin: PrimitiveDateTime,
-    end: PrimitiveDateTime,
+    begin: DateTime,
+    end: DateTime,
 }
 
 impl TripInputData {
     fn new() -> Result<Self, RenderError> {
-        const FIVE_MINUTES: i64 = 5 * 60;
+        let in_five_mins = Zoned::now()
+            .round(ZonedRound::new().smallest(Unit::Minute).mode(RoundMode::Ceil).increment(5))?;
+        let hour_later = &in_five_mins + 1.hour();
 
-        let now = UtcDateTime::now().unix_timestamp();
-
-        // Round to next five minutes
-        let in_five_mins = ((now / FIVE_MINUTES) + 1) * FIVE_MINUTES;
-        // Convert to OffsetDateTime in local TZ
-        let in_five_mins = OffsetDateTime::from_unix_timestamp(in_five_mins)?
-            .to_offset(UtcOffset::current_local_offset()?);
-        // Convert to PrimitiveDateTime
-        let in_five_mins = PrimitiveDateTime::new(in_five_mins.date(), in_five_mins.time());
-
-        Ok(Self { km: 10.0, begin: in_five_mins, end: in_five_mins + Duration::HOUR })
+        Ok(Self { km: 10.0, begin: in_five_mins.datetime(), end: hour_later.datetime() })
     }
 }
 

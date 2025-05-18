@@ -1,10 +1,10 @@
 use anyhow::{bail, Context, Result};
 use csv::{ReaderBuilder, Trim};
 use enum_map::{enum_map, Enum, EnumMap};
+use jiff::civil::{Time, Weekday};
 use regex::{Captures, Regex};
 use serde::{de::Error, Deserialize, Deserializer};
 use std::{mem, sync::LazyLock, time::Duration};
-use time::{Time, Weekday};
 use tracing::debug;
 
 const BASIC: &[u8] = include_bytes!("../../provider-data/car4way/basic.tsv");
@@ -92,24 +92,12 @@ struct WeekdayTime {
     time: Time,
 }
 
-// https://users.rust-lang.org/t/compile-time-const-unwrapping/51619
-macro_rules! unwrap {
-    ($e:expr $(,)*) => {
-        match $e {
-            ::core::result::Result::Ok(x) => x,
-            ::core::result::Result::Err(_) => {
-                panic!("Tried to unwrap an Err");
-            },
-        }
-    };
-}
-
 fn load_tariff(name: &'static str, data: &[u8]) -> Result<Tariff> {
     // Keep the times and regexes in sync!
-    const DAY_START: Time = unwrap!(Time::from_hms(6, 0, 0));
-    const NIGHT_START: Time = unwrap!(Time::from_hms(20, 0, 0));
-    const WEEKEND_START: Time = unwrap!(Time::from_hms(16, 0, 0));
-    const WEEKEND_END: Time = unwrap!(Time::from_hms(10, 0, 0));
+    const DAY_START: Time = Time::constant(6, 0, 0, 0);
+    const NIGHT_START: Time = Time::constant(20, 0, 0, 0);
+    const WEEKEND_START: Time = Time::constant(16, 0, 0, 0);
+    const WEEKEND_END: Time = Time::constant(10, 0, 0, 0);
 
     static DAY_MINUTE_TARIFF_RE: LazyLock<Regex> =
         LazyLock::new(|| Regex::new("Denní: 6:00 - 20:00 Po-Ne").unwrap());

@@ -13,7 +13,8 @@ dioxus = { version = "0.6", features = [] }
 enum-map = "2"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
-time = { version = "0.3", features = ["local-offset"] }
+# Disable default features, we don't need tzdb-bundle-platform
+jiff = { version = "0.2", default-features = false, features = ["js", "std"] }
 tracing = "0.1"
 
 [features]
