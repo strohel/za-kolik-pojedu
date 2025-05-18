@@ -73,15 +73,22 @@ impl TripInputData {
 
 #[component]
 fn TripInput(input_data: Signal<TripInputData>) -> Element {
-    debug!("TripInput rendering...");
+    debug!("TripInput rendering, input_data: {:?}.", input_data);
 
-    let kilometers_changed = move |evt: Event<FormData>| {
-        debug!("Kilometers changed: {evt:?}");
-        let value: f64 = evt.value().parse()?;
-        input_data.write().km = value;
-
+    let km_changed = move |evt: Event<FormData>| {
+        input_data.write().km = evt.value().parse()?;
         Ok(())
     };
+    let begin_changed = move |evt: Event<FormData>| {
+        input_data.write().begin = evt.value().parse()?;
+        Ok(())
+    };
+    let end_changed = move |evt: Event<FormData>| {
+        input_data.write().end = evt.value().parse()?;
+        Ok(())
+    };
+
+    let total_time = input_data.with(|input_data| input_data.end - input_data.begin);
 
     rsx! {
         div { id: "trip", class: "top-section",
@@ -91,17 +98,28 @@ fn TripInput(input_data: Signal<TripInputData>) -> Element {
                 input { id: "input-kilometers",
                     r#type: "number",
                     value: input_data().km,
-                    onchange: kilometers_changed,
+                    onchange: km_changed,
                     min: 0,
                 },
-            }
+            },
             p {
                 label { for: "input-begin-time", "Začátek " },
-                input { id: "input-begin-time", r#type: "datetime-local", }
-            }
+                input { id: "input-begin-time",
+                    r#type: "datetime-local",
+                    value: input_data().begin.to_string(),
+                    onchange: begin_changed,
+                },
+            },
             p {
                 label { for: "input-end-time", "Konec " },
-                input { id: "input-end-time", r#type: "datetime-local", }
+                input { id: "input-end-time",
+                    r#type: "datetime-local",
+                    value: input_data().end.to_string(),
+                    onchange: end_changed,
+                },
+            },
+            p {
+                "Celkový čas: {total_time:#}"
             }
         },
     }
