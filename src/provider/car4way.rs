@@ -1,3 +1,4 @@
+use crate::provider::ProviderCalculator;
 use anyhow::{bail, Context, Result};
 use csv::{ReaderBuilder, Trim};
 use enum_map::{enum_map, Enum, EnumMap};
@@ -22,10 +23,6 @@ impl Car4way {
         Self::load_tariffs().expect("Unit tested, should not fail")
     }
 
-    pub fn name(&self) -> &str {
-        "car4way"
-    }
-
     fn load_tariffs() -> Result<Self> {
         let tariffs: Result<_> = [("Basic", BASIC), ("Active", ACTIVE), ("Business", BUSINESS)]
             .iter()
@@ -40,6 +37,8 @@ impl Car4way {
         Ok(Self { tariffs })
     }
 }
+
+impl ProviderCalculator for Car4way {}
 
 #[derive(Debug, Clone, PartialEq)]
 struct Tariff {
