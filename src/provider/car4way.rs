@@ -22,7 +22,7 @@ impl Car4way {
         Self::load_tariffs().expect("Unit tested, should not fail")
     }
 
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         "car4way"
     }
 

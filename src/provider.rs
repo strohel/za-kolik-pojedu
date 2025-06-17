@@ -5,7 +5,7 @@ pub mod car4way;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Provider {
-    enabled: bool,
+    pub enabled: bool,
     kind: ProviderKind,
 }
 
@@ -14,7 +14,7 @@ impl Provider {
         Self { enabled: true, kind }
     }
 
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         match &self.kind {
             ProviderKind::Bolt(bolt) => bolt.name(),
             ProviderKind::Car4way(car4way) => car4way.name(),

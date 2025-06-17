@@ -2,7 +2,7 @@
 pub struct Bolt {}
 
 impl Bolt {
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         "Bolt"
     }
 }

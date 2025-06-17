@@ -36,18 +36,15 @@ fn MainView() -> Element {
     debug!("MainView rendering...");
     let input_data = use_signal(|| TripInputData::new().expect("can construct TripInputData"));
 
-    let providers = use_signal(|| -> Vec<Provider> {
-        vec![
-            Provider::new(ProviderKind::Bolt(Default::default())),
-            Provider::new(ProviderKind::Car4way(Car4way::new())),
-        ]
-    });
+    let bolt = use_signal(|| Provider::new(ProviderKind::Bolt(Default::default())));
+    let car4way = use_signal(|| Provider::new(ProviderKind::Car4way(Car4way::new())));
+    let providers = [bolt, car4way];
 
     rsx! {
         TripInput { input_data },
         div { id: "providers", class: "top-section",
             h2 { "Poskytovatelé" },
-            for provider in providers.read().iter().cloned() {
+            for provider in providers {
                 ProviderSection { provider },
             }
         }
@@ -97,7 +94,7 @@ fn TripInput(input_data: Signal<TripInputData>) -> Element {
                 label { for: "input-kilometers", "Počet km " },
                 input { id: "input-kilometers",
                     r#type: "number",
-                    value: input_data().km,
+                    value: input_data.read().km,
                     onchange: km_changed,
                     min: 0,
                 },
@@ -106,7 +103,7 @@ fn TripInput(input_data: Signal<TripInputData>) -> Element {
                 label { for: "input-begin-time", "Začátek " },
                 input { id: "input-begin-time",
                     r#type: "datetime-local",
-                    value: input_data().begin.to_string(),
+                    value: input_data.read().begin.to_string(),
                     onchange: begin_changed,
                 },
             },
@@ -114,7 +111,7 @@ fn TripInput(input_data: Signal<TripInputData>) -> Element {
                 label { for: "input-end-time", "Konec " },
                 input { id: "input-end-time",
                     r#type: "datetime-local",
-                    value: input_data().end.to_string(),
+                    value: input_data.read().end.to_string(),
                     onchange: end_changed,
                 },
             },
@@ -126,13 +123,28 @@ fn TripInput(input_data: Signal<TripInputData>) -> Element {
 }
 
 #[component]
-fn ProviderSection(provider: Provider) -> Element {
-    debug!("ProviderSection rendering...");
+fn ProviderSection(provider: Signal<Provider>) -> Element {
+    let name = provider.read().name();
+    debug!("ProviderSection for {name} rendering...");
+
+    let enabled_changed = move |evt: Event<FormData>| {
+        provider.write().enabled = evt.value().parse()?;
+        Ok(())
+    };
+
     rsx! {
         div {
-            key: provider.name(),
+            key: name,
             class: "provider",
-            h3 { "{provider.name()}" },
+            h3 { "{name}" },
+            p {
+                label { for: "provider-{name}-enabled", "Využít " },
+                input { id: "provider-{name}-enabled",
+                    r#type: "checkbox",
+                    checked: provider.read().enabled,
+                    onchange: enabled_changed,
+                }
+            }
             pre { "{provider:#?}" }
         }
     }
