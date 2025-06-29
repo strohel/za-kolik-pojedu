@@ -64,11 +64,11 @@ enum TariffKind {
 }
 
 fn load_tariffs() -> Vec<Tariff> {
-    [("Basic", BASIC), ("Active", ACTIVE), ("Business", BUSINESS)]
+    [(TariffKind::Basic, BASIC), (TariffKind::Active, ACTIVE), (TariffKind::Business, BUSINESS)]
         .iter()
         .map(|(name, data)| {
             debug!("Loading {name:?}...");
-            load_tariff(name, data)
+            load_tariff(*name, data)
                 .with_context(|| format!("loading {name:?} Car4way tariff"))
                 .expect("unit tested, should not fail")
         })
@@ -77,7 +77,7 @@ fn load_tariffs() -> Vec<Tariff> {
 
 #[derive(Debug, Clone, PartialEq)]
 struct Tariff {
-    name: &'static str,
+    kind: TariffKind,
     // NB(Matej): maybe better to transpose this?
     per_cartype: EnumMap<CarType, PerCarTariff>,
     per_km_czk: f64,
@@ -126,7 +126,7 @@ struct WeekdayTime {
     time: Time,
 }
 
-fn load_tariff(name: &'static str, data: &[u8]) -> Result<Tariff> {
+fn load_tariff(kind: TariffKind, data: &[u8]) -> Result<Tariff> {
     // Keep the times and regexes in sync!
     const DAY_START: Time = Time::constant(6, 0, 0, 0);
     const NIGHT_START: Time = Time::constant(20, 0, 0, 0);
@@ -191,7 +191,7 @@ fn load_tariff(name: &'static str, data: &[u8]) -> Result<Tariff> {
     }
 
     Ok(Tariff {
-        name,
+        kind,
         per_cartype: enum_map! { car_type => {
             PerCarTariff {
                 per_minute: vec![
