@@ -5,7 +5,7 @@ use enum_map::{enum_map, Enum, EnumMap};
 use jiff::civil::{Time, Weekday};
 use regex::{Captures, Regex};
 use serde::{de::Error, Deserialize, Deserializer};
-use std::{mem, sync::LazyLock, time::Duration};
+use std::{collections::BTreeSet, mem, sync::LazyLock, time::Duration};
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 use tracing::debug;
 
@@ -15,9 +15,10 @@ const BUSINESS: &[u8] = include_bytes!("../../provider-data/car4way/business.tsv
 
 static TARIFFS: LazyLock<Vec<Tariff>> = LazyLock::new(load_tariffs);
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Car4way {
     tariff: TariffKind,
+    car_types: BTreeSet<CarType>,
 }
 
 impl Car4way {
@@ -26,14 +27,27 @@ impl Car4way {
     }
 }
 
+impl Default for Car4way {
+    fn default() -> Self {
+        Self { tariff: TariffKind::default(), car_types: CarType::iter().collect() }
+    }
+}
+
 #[component]
 pub fn Car4wayInput(car4way: Signal<Car4way>) -> Element {
     let name = car4way.read().name();
 
-    let tariff_changed = move |evt: Event<FormData>| {
-        let tariff: TariffKind = evt.value().parse()?;
-        car4way.write().tariff = tariff;
+    let tariff_changed = move |evt: FormEvent| {
+        car4way.write().tariff = evt.parsed()?;
         Ok(())
+    };
+
+    let mut car_type_changed = move |car_type, evt: FormEvent| {
+        if evt.checked() {
+            car4way.write().car_types.insert(car_type);
+        } else {
+            car4way.write().car_types.remove(&car_type);
+        }
     };
 
     rsx! {
@@ -42,13 +56,23 @@ pub fn Car4wayInput(car4way: Signal<Car4way>) -> Element {
                 select { id: "provider-{name}-tariff",
                     onchange: tariff_changed,
                     for tariff_kind in TariffKind::iter() {
-                        option { value: "{tariff_kind:?}",
+                        option { value: "{tariff_kind}",
                             selected: car4way.read().tariff == tariff_kind,
-                            "{tariff_kind:?}"
+                            "{tariff_kind}"
                         }
                     }
                 }
-
+        }
+        p {
+                "Kategorie aut: ",
+                for car_type in CarType::iter() {
+                    input { id: "provider-{name}-cartype-{car_type}",
+                        r#type: "checkbox",
+                        checked: car4way.read().car_types.contains(&car_type),
+                        onchange: move |evt| car_type_changed(car_type, evt),
+                    }
+                    label { for: "provider-{name}-cartype-{car_type}", "{car_type} " },
+                }
         }
     }
 }
@@ -85,7 +109,9 @@ struct Tariff {
     airport_leave_czk: f64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Enum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Enum, EnumIter, Display, EnumString,
+)]
 enum CarType {
     Legend,
     Fancy,

@@ -41,11 +41,11 @@ fn MainView() -> Element {
     let input_data = use_signal(|| TripInputData::new().expect("can construct TripInputData"));
 
     let bolt_enabled = use_signal(|| true);
-    let bolt = use_signal(|| Bolt::default());
+    let bolt = use_signal(Bolt::default);
     let bolt = Provider::new(bolt_enabled, ProviderKind::Bolt(bolt));
 
     let car4way_enabled = use_signal(|| true);
-    let car4way = use_signal(|| Car4way::default());
+    let car4way = use_signal(Car4way::default);
     let car4way = Provider::new(car4way_enabled, ProviderKind::Car4way(car4way));
 
     let providers = [bolt, car4way];
@@ -82,16 +82,16 @@ impl TripInputData {
 fn TripInput(input_data: Signal<TripInputData>) -> Element {
     debug!("TripInput rendering, input_data: {:?}.", input_data);
 
-    let km_changed = move |evt: Event<FormData>| {
-        input_data.write().km = evt.value().parse()?;
+    let km_changed = move |evt: FormEvent| {
+        input_data.write().km = evt.parsed()?;
         Ok(())
     };
-    let begin_changed = move |evt: Event<FormData>| {
-        input_data.write().begin = evt.value().parse()?;
+    let begin_changed = move |evt: FormEvent| {
+        input_data.write().begin = evt.parsed()?;
         Ok(())
     };
-    let end_changed = move |evt: Event<FormData>| {
-        input_data.write().end = evt.value().parse()?;
+    let end_changed = move |evt: FormEvent| {
+        input_data.write().end = evt.parsed()?;
         Ok(())
     };
 
@@ -137,8 +137,8 @@ fn ProviderSection(provider: Provider) -> Element {
     let name = provider.name();
     debug!("ProviderSection for {name} rendering...");
 
-    let enabled_changed = move |evt: Event<FormData>| {
-        provider.enabled.set(evt.value().parse()?);
+    let enabled_changed = move |evt: FormEvent| {
+        provider.enabled.set(evt.parsed()?);
         Ok(())
     };
 
