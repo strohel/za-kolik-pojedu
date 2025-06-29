@@ -1,44 +1,78 @@
 use anyhow::{bail, Context, Result};
 use csv::{ReaderBuilder, Trim};
+use dioxus::prelude::*;
 use enum_map::{enum_map, Enum, EnumMap};
 use jiff::civil::{Time, Weekday};
 use regex::{Captures, Regex};
 use serde::{de::Error, Deserialize, Deserializer};
 use std::{mem, sync::LazyLock, time::Duration};
+use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 use tracing::debug;
 
 const BASIC: &[u8] = include_bytes!("../../provider-data/car4way/basic.tsv");
 const ACTIVE: &[u8] = include_bytes!("../../provider-data/car4way/active.tsv");
 const BUSINESS: &[u8] = include_bytes!("../../provider-data/car4way/business.tsv");
 
-#[derive(Debug, Clone, PartialEq)]
+static TARIFFS: LazyLock<Vec<Tariff>> = LazyLock::new(load_tariffs);
+
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Car4way {
-    tariffs: Vec<Tariff>,
+    tariff: TariffKind,
 }
 
 impl Car4way {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        Self::load_tariffs().expect("Unit tested, should not fail")
-    }
-
     pub fn name(&self) -> &'static str {
         "car4way"
     }
+}
 
-    fn load_tariffs() -> Result<Self> {
-        let tariffs: Result<_> = [("Basic", BASIC), ("Active", ACTIVE), ("Business", BUSINESS)]
-            .iter()
-            .map(|(name, data)| {
-                debug!("Loading {name:?}...");
-                load_tariff(name, data).with_context(|| format!("loading {name:?} Car4way tariff"))
-            })
-            .collect();
-        let tariffs = tariffs?;
+#[component]
+pub fn Car4wayInput(car4way: Signal<Car4way>) -> Element {
+    let name = car4way.read().name();
 
-        // TODO(Matej): persist tariffs
-        Ok(Self { tariffs })
+    let tariff_changed = move |evt: Event<FormData>| {
+        let tariff: TariffKind = evt.value().parse()?;
+        car4way.write().tariff = tariff;
+        Ok(())
+    };
+
+    rsx! {
+        p {
+                label { for: "provider-{name}-tariff", "Tarif: " },
+                select { id: "provider-{name}-tariff",
+                    onchange: tariff_changed,
+                    for tariff_kind in TariffKind::iter() {
+                        option { value: "{tariff_kind:?}",
+                            selected: car4way.read().tariff == tariff_kind,
+                            "{tariff_kind:?}"
+                        }
+                    }
+                }
+
+        }
     }
+}
+
+#[derive(
+    Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter, Display, EnumString,
+)]
+enum TariffKind {
+    #[default]
+    Basic,
+    Active,
+    Business,
+}
+
+fn load_tariffs() -> Vec<Tariff> {
+    [("Basic", BASIC), ("Active", ACTIVE), ("Business", BUSINESS)]
+        .iter()
+        .map(|(name, data)| {
+            debug!("Loading {name:?}...");
+            load_tariff(name, data)
+                .with_context(|| format!("loading {name:?} Car4way tariff"))
+                .expect("unit tested, should not fail")
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -289,7 +323,7 @@ mod tests {
     use test_log::test;
 
     #[test]
-    fn load_tariffs() {
-        dbg!(Car4way::new());
+    fn test_load_tariffs() {
+        dbg!(load_tariffs());
     }
 }

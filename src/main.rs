@@ -1,4 +1,8 @@
-use crate::provider::{car4way::Car4way, Provider, ProviderKind};
+use crate::provider::{
+    bolt::Bolt,
+    car4way::{Car4way, Car4wayInput},
+    Provider, ProviderKind,
+};
 use dioxus::prelude::*;
 use jiff::{civil::DateTime, RoundMode, ToSpan, Unit, Zoned, ZonedRound};
 use tracing::debug;
@@ -36,8 +40,14 @@ fn MainView() -> Element {
     debug!("MainView rendering...");
     let input_data = use_signal(|| TripInputData::new().expect("can construct TripInputData"));
 
-    let bolt = use_signal(|| Provider::new(ProviderKind::Bolt(Default::default())));
-    let car4way = use_signal(|| Provider::new(ProviderKind::Car4way(Car4way::new())));
+    let bolt_enabled = use_signal(|| true);
+    let bolt = use_signal(|| Bolt::default());
+    let bolt = Provider::new(bolt_enabled, ProviderKind::Bolt(bolt));
+
+    let car4way_enabled = use_signal(|| true);
+    let car4way = use_signal(|| Car4way::default());
+    let car4way = Provider::new(car4way_enabled, ProviderKind::Car4way(car4way));
+
     let providers = [bolt, car4way];
 
     rsx! {
@@ -123,12 +133,12 @@ fn TripInput(input_data: Signal<TripInputData>) -> Element {
 }
 
 #[component]
-fn ProviderSection(provider: Signal<Provider>) -> Element {
-    let name = provider.read().name();
+fn ProviderSection(provider: Provider) -> Element {
+    let name = provider.name();
     debug!("ProviderSection for {name} rendering...");
 
     let enabled_changed = move |evt: Event<FormData>| {
-        provider.write().enabled = evt.value().parse()?;
+        provider.enabled.set(evt.value().parse()?);
         Ok(())
     };
 
@@ -141,9 +151,13 @@ fn ProviderSection(provider: Signal<Provider>) -> Element {
                 label { for: "provider-{name}-enabled", "Využít " },
                 input { id: "provider-{name}-enabled",
                     r#type: "checkbox",
-                    checked: provider.read().enabled,
+                    checked: provider.enabled,
                     onchange: enabled_changed,
                 }
+            }
+            match provider.kind {
+                ProviderKind::Bolt(_bolt) => rsx!("TODO Bolt"),
+                ProviderKind::Car4way(car4way) => rsx! { Car4wayInput { car4way } },
             }
             pre { "{provider:#?}" }
         }

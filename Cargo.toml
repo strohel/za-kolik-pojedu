@@ -11,9 +11,10 @@ anyhow = "1"
 csv = "1"
 dioxus = { version = "0.6", features = [] }
 enum-map = "2"
+jiff = { version = "0.2", features = ["js"] }
 regex = "1"
 serde = { version = "1", features = ["derive"] }
-jiff = { version = "0.2", features = ["js"] }
+strum = { version = "0.27", features = ["derive"] }
 tracing = "0.1"
 
 [features]
