@@ -9,6 +9,8 @@ use tracing::debug;
 
 pub mod provider;
 
+type FormEvent = Event<FormData>;
+
 static CSS: Asset = asset!("/assets/main.css");
 
 fn main() {
@@ -55,14 +57,14 @@ fn MainView() -> Element {
         div { id: "providers", class: "top-section",
             h2 { "Poskytovatelé" },
             for provider in providers {
-                ProviderSection { provider },
+                ProviderSection { provider, input_data },
             }
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct TripInputData {
+pub struct TripInputData {
     km: f64,
     begin: DateTime,
     end: DateTime,
@@ -133,7 +135,7 @@ fn TripInput(input_data: Signal<TripInputData>) -> Element {
 }
 
 #[component]
-fn ProviderSection(provider: Provider) -> Element {
+fn ProviderSection(provider: Provider, input_data: Signal<TripInputData>) -> Element {
     let name = provider.name();
     debug!("ProviderSection for {name} rendering...");
 
@@ -141,6 +143,9 @@ fn ProviderSection(provider: Provider) -> Element {
         provider.enabled.set(evt.parsed()?);
         Ok(())
     };
+
+    // TODO(Matej): does this need a memo or something like that?
+    let result = provider.calculate(input_data);
 
     rsx! {
         div {
@@ -158,6 +163,9 @@ fn ProviderSection(provider: Provider) -> Element {
             match provider.kind {
                 ProviderKind::Bolt(_bolt) => rsx!("TODO Bolt"),
                 ProviderKind::Car4way(car4way) => rsx! { Car4wayInput { car4way } },
+            }
+            p {
+                "Result: {result}"
             }
             pre { "{provider:#?}" }
         }

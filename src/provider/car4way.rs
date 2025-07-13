@@ -1,11 +1,12 @@
+use crate::{provider::CalculationResult, FormEvent, TripInputData};
 use anyhow::{bail, Context, Result};
 use csv::{ReaderBuilder, Trim};
 use dioxus::prelude::*;
 use enum_map::{enum_map, Enum, EnumMap};
-use jiff::civil::{Time, Weekday};
+use jiff::civil::{DateTime, Time, Weekday};
 use regex::{Captures, Regex};
 use serde::{de::Error, Deserialize, Deserializer};
-use std::{collections::BTreeSet, mem, sync::LazyLock, time::Duration};
+use std::{borrow::Cow, cmp::min, collections::BTreeSet, mem, sync::LazyLock, time::Duration};
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 use tracing::debug;
 
@@ -24,6 +25,13 @@ pub struct Car4way {
 impl Car4way {
     pub fn name(&self) -> &'static str {
         "car4way"
+    }
+
+    pub fn calculate(&self, input_data: TripInputData) -> CalculationResult {
+        debug!("Car4way::calculate({input_data:?}) called");
+        let tariff =
+            TARIFFS.iter().find(|t| t.kind == self.tariff).expect("all tariffs should be loaded");
+        tariff.calculate(input_data, &self.car_types)
     }
 }
 
@@ -109,6 +117,70 @@ struct Tariff {
     airport_leave_czk: f64,
 }
 
+impl Tariff {
+    fn calculate(
+        &self,
+        input_data: TripInputData,
+        car_types: &BTreeSet<CarType>,
+    ) -> CalculationResult {
+        let results =
+            car_types.iter().map(|car_type| self.calculate_for_car(input_data, *car_type));
+        results.min().expect("car types are not empty")
+    }
+
+    fn calculate_for_car(&self, input_data: TripInputData, car_type: CarType) -> CalculationResult {
+        let per_car_tariff = &self.per_cartype[car_type];
+        let results = per_car_tariff.packages.iter().map(Some).chain(Some(None)).map(|package| {
+            self.calculate_for_package(input_data, car_type, &per_car_tariff.per_minute, package)
+        });
+        results.min().expect("packages are not empty")
+    }
+
+    fn calculate_for_package(
+        &self,
+        input_data: TripInputData,
+        car_type: CarType,
+        per_minute: &[PerMinuteTariff],
+        package: Option<&Package>,
+    ) -> CalculationResult {
+        let mut cursor = input_data.begin;
+        let mut remaining_km = input_data.km;
+        let mut price_czk = 0.0;
+
+        let mut name_parts: Vec<Cow<str>> = vec![];
+        name_parts.push(car_type.name().into());
+
+        if let Some(package) = package {
+            // TODO(Matej): package time limitation!!!
+            cursor += package.duration;
+            remaining_km -= package.kilometers;
+            remaining_km = remaining_km.max(0.0);
+            price_czk += package.czk;
+            name_parts.push(package.name.as_str().into());
+        }
+
+        while cursor < input_data.end {
+            let minute_tariff = per_minute
+                .iter()
+                .find(|minute_tariff| minute_tariff.contains_time(cursor.time()))
+                .expect("minute tariffs cover 24 hours");
+
+            minute_tariff.advance(&mut cursor, &mut price_czk, input_data.end);
+            name_parts.push(minute_tariff.name().into());
+        }
+
+        if remaining_km > 0.0 {
+            price_czk += remaining_km * self.per_km_czk;
+            name_parts.push("extra za km".into());
+        }
+
+        // TODO(Matej): entering or leaving airport!
+
+        let details = name_parts.join(", ");
+        CalculationResult { price_czk, details }
+    }
+}
+
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Enum, EnumIter, Display, EnumString,
 )]
@@ -116,6 +188,16 @@ enum CarType {
     Legend,
     Fancy,
     Boss,
+}
+
+impl CarType {
+    fn name(&self) -> &'static str {
+        match self {
+            CarType::Legend => "Legend (Fabia)",
+            CarType::Fancy => "Fancy (Scala, Karoq, Octavia, Caddy Van)",
+            CarType::Boss => "Boss (Superb, Kodiaq)",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -129,6 +211,35 @@ struct PerMinuteTariff {
     start: Time,
     end: Time,
     per_minute_czk: f64,
+}
+
+impl PerMinuteTariff {
+    fn name(&self) -> String {
+        format!("minutový tarif {}-{}", self.start, self.end)
+    }
+
+    fn contains_time(&self, time: Time) -> bool {
+        if self.start < self.end {
+            self.start <= time && time < self.end
+        } else {
+            self.start <= time || time < self.end
+        }
+    }
+
+    fn advance(&self, cursor: &mut DateTime, price_czk: &mut f64, trip_end: DateTime) {
+        let first_possibility = cursor.with().time(self.end).build().expect("can set time");
+        let tariff_end = if *cursor < first_possibility {
+            first_possibility
+        } else {
+            first_possibility + Duration::from_secs(24 * 60 * 60)
+        };
+
+        let end = min(tariff_end, trip_end);
+        let duration = end.duration_since(*cursor);
+
+        *cursor = end;
+        *price_czk += duration.as_mins() as f64 * self.per_minute_czk;
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
