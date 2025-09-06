@@ -1,11 +1,11 @@
-use crate::{provider::CalculationResult, FormEvent, TripInputData};
-use anyhow::{bail, Context, Result};
+use crate::{FormEvent, TripInputData, provider::CalculationResult};
+use anyhow::{Context, Result, bail};
 use csv::{ReaderBuilder, Trim};
 use dioxus::prelude::*;
-use enum_map::{enum_map, Enum, EnumMap};
+use enum_map::{Enum, EnumMap, enum_map};
 use jiff::civil::{DateTime, Time, Weekday};
 use regex::{Captures, Regex};
-use serde::{de::Error, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, de::Error};
 use std::{borrow::Cow, cmp::min, collections::BTreeSet, mem, sync::LazyLock, time::Duration};
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 use tracing::debug;
@@ -431,11 +431,7 @@ impl TariffRow {
         let mut non_null_iter = values.iter().filter_map(|x| *x);
 
         let first_non_null = non_null_iter.next();
-        if non_null_iter.next().is_none() {
-            first_non_null
-        } else {
-            None
-        }
+        if non_null_iter.next().is_none() { first_non_null } else { None }
     }
 }
 

@@ -1,10 +1,10 @@
 use crate::provider::{
+    Provider, ProviderKind,
     bolt::Bolt,
     car4way::{Car4way, Car4wayInput},
-    Provider, ProviderKind,
 };
 use dioxus::prelude::*;
-use jiff::{civil::DateTime, RoundMode, ToSpan, Unit, Zoned, ZonedRound};
+use jiff::{RoundMode, ToSpan, Unit, Zoned, ZonedRound, civil::DateTime};
 use tracing::debug;
 
 pub mod provider;

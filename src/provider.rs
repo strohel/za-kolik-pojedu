@@ -1,6 +1,6 @@
 use crate::{
-    provider::{bolt::Bolt, car4way::Car4way},
     TripInputData,
+    provider::{bolt::Bolt, car4way::Car4way},
 };
 use dioxus::signals::{Readable, Signal};
 use std::{
