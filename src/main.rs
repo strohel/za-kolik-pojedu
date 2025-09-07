@@ -153,15 +153,14 @@ fn ProviderSection(provider: Provider, input_data: Signal<TripInputData>) -> Ele
         div {
             key: name,
             class: "provider",
-            h3 { "{name}" },
-            p {
-                label { for: "provider-{name}-enabled", "Využít " },
+            h3 {
                 input { id: "provider-{name}-enabled",
                     r#type: "checkbox",
                     checked: provider.enabled,
                     onchange: enabled_changed,
                 }
-            }
+                label { for: "provider-{name}-enabled", " {name}" },
+            },
             match provider.kind {
                 ProviderKind::Bolt(_bolt) => rsx!("TODO Bolt"),
                 ProviderKind::Car4way(car4way) => rsx! { Car4wayInput { car4way } },
