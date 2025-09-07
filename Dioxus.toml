@@ -1,5 +1,18 @@
 [application]
 
+# App (Project) Name
+name = "za-kolik-pojedu"
+
+# Dioxus App Default Platform
+# desktop, web, mobile, ssr
+default_platform = "web"
+
+# `build` & `serve` dist path
+out_dir = "dist"
+
+# resource (public) file folder
+asset_dir = "public"
+
 [web.app]
 
 # HTML title tag content
