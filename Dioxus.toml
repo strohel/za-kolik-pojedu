@@ -14,6 +14,8 @@ out_dir = "dist"
 asset_dir = "public"
 
 [web.app]
+# Needed for GitHub Pages, as they will upload under a subfolder
+base_path = "za-kolik-pojedu"
 
 # HTML title tag content
 title = "Za kolik pojedu? 🚗🫰"

@@ -30,13 +30,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
-      - uses: Swatinem/rust-cache@v2
       - name: Install dioxus-cli
         shell: bash
         run: cargo install dioxus-cli
