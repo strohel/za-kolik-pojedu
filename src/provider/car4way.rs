@@ -172,7 +172,7 @@ impl Tariff {
         if remaining_km > 0.0 {
             components.push(PriceComponent {
                 czk: remaining_km * self.per_km_czk,
-                name: "extra za km".into(),
+                name: format!("extra za {remaining_km} km"),
             });
         }
 
@@ -216,7 +216,7 @@ struct PerMinuteTariff {
 
 impl PerMinuteTariff {
     fn name(&self) -> String {
-        format!("minutový tarif {}-{}", self.start, self.end)
+        format!("minutový tarif {:02}-{:02}h", self.start.hour(), self.end.hour())
     }
 
     fn contains_time(&self, time: Time) -> bool {
@@ -239,7 +239,10 @@ impl PerMinuteTariff {
         let duration = end.duration_since(*cursor);
 
         *cursor = end;
-        PriceComponent { czk: duration.as_mins() as f64 * self.per_minute_czk, name: self.name() }
+        PriceComponent {
+            czk: duration.as_mins() as f64 * self.per_minute_czk,
+            name: format!("{} {} minut", self.name(), duration.as_mins()),
+        }
     }
 }
 

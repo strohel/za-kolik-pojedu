@@ -177,10 +177,10 @@ fn VisualizedResult(result: CalculationResult) -> Element {
     let total_czk = result.total_czk();
     let mut title = result.car_type;
     for component in result.components {
-        title.push_str(&format!(", {} ({} Kč)", component.name, component.czk));
+        title.push_str(&format!(", {} ({:.0} Kč)", component.name, component.czk));
     }
 
     rsx! {
-        span { class: "result", title: title, "{total_czk} Kč" },
+        span { class: "result", title: title, "{total_czk:.0} Kč" },
     }
 }
