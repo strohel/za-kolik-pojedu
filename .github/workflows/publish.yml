@@ -1,0 +1,13 @@
+name: bundle deploy publish
+
+on:
+  push:
+    branches:
+      - bundle-publish # TESTING
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Dioxus Deploy"
+        uses: DioxusLabs/deploy-action@0.1.2
