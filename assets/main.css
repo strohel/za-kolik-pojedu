@@ -17,3 +17,8 @@ body {
 #providers-wrapper {
     display: flex;
 }
+
+.result {
+    font-weight: bold;
+    font-size: 150%;
+}

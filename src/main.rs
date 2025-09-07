@@ -173,11 +173,13 @@ fn ProviderSection(provider: Provider, input_data: Signal<TripInputData>) -> Ele
 
 #[component]
 fn VisualizedResult(result: CalculationResult) -> Element {
+    let total_czk = result.total_czk();
+    let mut title = result.car_type;
+    for component in result.components {
+        title.push_str(&format!(", {} ({} Kč)", component.name, component.czk));
+    }
+
     rsx! {
-        b { "{result.total_czk()} Kč" },
-        " {result.car_type}",
-        for component in result.components {
-            ", {component.name} ({component.czk} Kč)"
-        }
+        span { class: "result", title: title, "{total_czk} Kč" },
     }
 }
