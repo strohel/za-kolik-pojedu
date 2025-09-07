@@ -76,9 +76,10 @@ impl TripInputData {
     fn new() -> Result<Self, RenderError> {
         let in_five_mins = Zoned::now()
             .round(ZonedRound::new().smallest(Unit::Minute).mode(RoundMode::Ceil).increment(5))?;
-        let hour_later = &in_five_mins + 1.hour();
+        let end = &in_five_mins + 2.hours();
+        let end = &end + 10.minutes();
 
-        Ok(Self { km: 10.0, begin: in_five_mins.datetime(), end: hour_later.datetime() })
+        Ok(Self { km: 12.0, begin: in_five_mins.datetime(), end: end.datetime() })
     }
 }
 
