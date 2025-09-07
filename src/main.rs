@@ -56,8 +56,10 @@ fn MainView() -> Element {
         TripInput { input_data },
         div { id: "providers", class: "top-section",
             h2 { "Poskytovatelé" },
-            for provider in providers {
-                ProviderSection { provider, input_data },
+            div { id: "providers-wrapper",
+                for provider in providers {
+                    ProviderSection { provider, input_data },
+                }
             }
         }
     }

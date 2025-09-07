@@ -13,3 +13,7 @@ body {
 .top-section>* {
     margin: 0.5em;
 }
+
+#providers-wrapper {
+    display: flex;
+}
