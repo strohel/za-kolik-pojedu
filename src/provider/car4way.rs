@@ -1,4 +1,7 @@
-use crate::{FormEvent, TripInputData, provider::CalculationResult};
+use crate::{
+    FormEvent, TripInputData,
+    provider::{CalculationResult, PriceComponent},
+};
 use anyhow::{Context, Result, bail};
 use csv::{ReaderBuilder, Trim};
 use dioxus::prelude::*;
@@ -6,7 +9,7 @@ use enum_map::{Enum, EnumMap, enum_map};
 use jiff::civil::{DateTime, Time, Weekday};
 use regex::{Captures, Regex};
 use serde::{Deserialize, Deserializer, de::Error};
-use std::{borrow::Cow, cmp::min, collections::BTreeSet, mem, sync::LazyLock, time::Duration};
+use std::{cmp::min, collections::BTreeSet, mem, sync::LazyLock, time::Duration};
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 use tracing::debug;
 
@@ -145,18 +148,15 @@ impl Tariff {
     ) -> CalculationResult {
         let mut cursor = input_data.begin;
         let mut remaining_km = input_data.km;
-        let mut price_czk = 0.0;
-
-        let mut name_parts: Vec<Cow<str>> = vec![];
-        name_parts.push(car_type.name().into());
+        let mut components = vec![];
 
         if let Some(package) = package {
             // TODO(Matej): package time limitation!!!
             cursor += package.duration;
             remaining_km -= package.kilometers;
             remaining_km = remaining_km.max(0.0);
-            price_czk += package.czk;
-            name_parts.push(package.name.as_str().into());
+
+            components.push(package.as_price_component());
         }
 
         while cursor < input_data.end {
@@ -165,19 +165,20 @@ impl Tariff {
                 .find(|minute_tariff| minute_tariff.contains_time(cursor.time()))
                 .expect("minute tariffs cover 24 hours");
 
-            minute_tariff.advance(&mut cursor, &mut price_czk, input_data.end);
-            name_parts.push(minute_tariff.name().into());
+            let component = minute_tariff.advance(&mut cursor, input_data.end);
+            components.push(component);
         }
 
         if remaining_km > 0.0 {
-            price_czk += remaining_km * self.per_km_czk;
-            name_parts.push("extra za km".into());
+            components.push(PriceComponent {
+                czk: remaining_km * self.per_km_czk,
+                name: "extra za km".into(),
+            });
         }
 
         // TODO(Matej): entering or leaving airport!
 
-        let details = name_parts.join(", ");
-        CalculationResult { price_czk, details }
+        CalculationResult { car_type: car_type.name().into(), components }
     }
 }
 
@@ -226,7 +227,7 @@ impl PerMinuteTariff {
         }
     }
 
-    fn advance(&self, cursor: &mut DateTime, price_czk: &mut f64, trip_end: DateTime) {
+    fn advance(&self, cursor: &mut DateTime, trip_end: DateTime) -> PriceComponent {
         let first_possibility = cursor.with().time(self.end).build().expect("can set time");
         let tariff_end = if *cursor < first_possibility {
             first_possibility
@@ -238,7 +239,7 @@ impl PerMinuteTariff {
         let duration = end.duration_since(*cursor);
 
         *cursor = end;
-        *price_czk += duration.as_mins() as f64 * self.per_minute_czk;
+        PriceComponent { czk: duration.as_mins() as f64 * self.per_minute_czk, name: self.name() }
     }
 }
 
@@ -249,6 +250,12 @@ struct Package {
     kilometers: f64,
     czk: f64,
     time_limitation: Option<TimeLimitation>,
+}
+
+impl Package {
+    fn as_price_component(&self) -> PriceComponent {
+        PriceComponent { czk: self.czk, name: self.name.clone() }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

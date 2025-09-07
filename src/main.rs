@@ -1,5 +1,5 @@
 use crate::provider::{
-    Provider, ProviderKind,
+    CalculationResult, Provider, ProviderKind,
     bolt::Bolt,
     car4way::{Car4way, Car4wayInput},
 };
@@ -165,10 +165,19 @@ fn ProviderSection(provider: Provider, input_data: Signal<TripInputData>) -> Ele
                 ProviderKind::Bolt(_bolt) => rsx!("TODO Bolt"),
                 ProviderKind::Car4way(car4way) => rsx! { Car4wayInput { car4way } },
             }
-            p {
-                "Result: {result}"
-            }
+            VisualizedResult { result },
             pre { "{provider:#?}" }
+        }
+    }
+}
+
+#[component]
+fn VisualizedResult(result: CalculationResult) -> Element {
+    rsx! {
+        b { "{result.total_czk()} Kč" },
+        " {result.car_type}",
+        for component in result.components {
+            ", {component.name} ({component.czk} Kč)"
         }
     }
 }

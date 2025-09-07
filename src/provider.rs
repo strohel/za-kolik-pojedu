@@ -3,10 +3,7 @@ use crate::{
     provider::{bolt::Bolt, car4way::Car4way},
 };
 use dioxus::signals::{Readable, Signal};
-use std::{
-    cmp::Ordering,
-    fmt::{self, Display},
-};
+use std::cmp::Ordering;
 
 pub mod bolt;
 pub mod car4way;
@@ -32,7 +29,7 @@ impl Provider {
     pub fn calculate(&self, input_data: Signal<TripInputData>) -> CalculationResult {
         match &self.kind {
             ProviderKind::Bolt(_bolt) => {
-                CalculationResult { price_czk: 0.0, details: String::from("TODO Bolt calculate") }
+                CalculationResult { car_type: "TODO".into(), components: vec![] }
             },
             ProviderKind::Car4way(car4way) => car4way.read().calculate(*input_data.read()),
         }
@@ -45,24 +42,37 @@ pub enum ProviderKind {
     Car4way(Signal<Car4way>),
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CalculationResult {
-    pub price_czk: f64,
-    pub details: String,
+    pub car_type: String,
+    pub components: Vec<PriceComponent>,
 }
 
-impl Display for CalculationResult {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let CalculationResult { price_czk, details } = &self;
-        write!(f, "{price_czk} Kč {details}")
+impl CalculationResult {
+    pub fn total_czk(&self) -> f64 {
+        self.components.iter().map(|c| c.czk).sum()
     }
 }
 
-impl Eq for CalculationResult {}
+#[expect(clippy::non_canonical_partial_ord_impl)]
+impl PartialOrd for CalculationResult {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.total_czk().partial_cmp(&other.total_czk())
+    }
+}
 
-#[allow(clippy::derive_ord_xor_partial_ord)] // Ord and PartialOrd impls match
 impl Ord for CalculationResult {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).expect("we use only comparable float values")
+        self.partial_cmp(other).expect("our floats compare")
     }
 }
+
+#[must_use]
+#[derive(Debug, Clone, PartialEq)]
+pub struct PriceComponent {
+    pub czk: f64,
+    pub name: String,
+}
+
+// We use floats that compare OK.
+impl Eq for PriceComponent {}
